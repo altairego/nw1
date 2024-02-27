@@ -1,0 +1,130 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>MyApp</title>
+
+    <link rel="stylesheet" href="assets/bootstrap.min.css">
+
+</head>
+<body class="disableSelection" onload="onBooksLoad();"  style="padding: 32px;">
+    <h3>Pas de DHTML, pour tester persistant localDatabase</h3>
+    <div>
+        <form onsubmit="saveBook();return false;">
+        id:<input id="bookid" onchange="updateStaging();"> - name : <input id="bookname" onchange="updateStaging();">
+        <button id="saveBtn" type="submit">Set</button> <button id="clearBtn" onClick="clearForm();">Clear</button>
+        </form>
+    </div>
+    <br/>
+
+    <script src="app/localdatabase.js"></script>
+    <pre><script>
+
+        function onBooksLoad() {
+            /* ----====######====---- */
+            var staging = myBooks.pending();
+            /* ----====######====---- */
+
+            if (staging) {
+                document.getElementById('bookid').value = staging.id;
+                document.getElementById('bookname').value = staging.name;
+            }
+            document.getElementById('bookname').focus();
+        }
+
+        function clearForm(){
+            /* ----====######====---- */
+            myBooks.pending(true);
+            /* ----====######====---- */
+
+            document.getElementById('bookid').value = '';
+            document.getElementById('bookname').value = '';
+        }
+
+        function editBook(_id){
+            /* ----====######====---- */
+            var staging = myBooks.pending(myBooks.get('books',_id));
+            /* ----====######====---- */
+
+            if (staging) {
+                document.getElementById('bookid').value = staging.id;
+                document.getElementById('bookname').value = staging.name;
+            }
+        }
+
+        function updateStaging(){
+            var _id = document.getElementById('bookid').value;
+            var _name = document.getElementById('bookname').value;
+
+                /* ----====######====---- */
+                var _data = {id: _id, name: _name};
+                myBooks.pending(_data);
+                /* ----====######====---- */
+        }
+
+        function saveBook(){
+            var _id = document.getElementById('bookid').value;
+            var _name = document.getElementById('bookname').value;
+
+            if (_name) {
+
+                /* ----====######====---- */
+                var _data = {name: _name};
+                if (_id) _data.id = _id;
+                myBooks.addBook(_data);
+                /* ----====######====---- */
+
+                document.location.reload();
+            }
+        }
+
+        function deleteBook(_id) {
+            /* ----====######====---- */
+            myBooks.deleteBook(_id);
+            /* ----====######====---- */
+
+            document.location.reload();
+        }
+
+        /* ----====######====---- */
+        var myBooks = LocalDatabase('mybooks',{
+            nb: 0,
+            books: [],
+            addBook(_book) {
+                this.record('books', _book, false);
+                this.nb = this.books.length;
+                delete this.pendingBook
+                return this.save(); // for chaining
+            },
+            deleteBook(_id) {
+                this.pendingBook = this.delete("books",_id, false);
+                this.nb = this.books.length;
+                return this.save(); // for chaining
+            },
+            pending(_book) { // (_book===true) => get && clear
+                if (_book===undefined || _book===true) {
+                    var ret = this.pendingBook;
+                    if (_book===true) {
+                        delete this.pendingBook;
+                        this.save();
+                    }
+                    return ret;
+                }
+
+                this.pendingBook = _book;
+                this.save();
+                return _book;
+            }
+        });
+        /* ----====######====---- */
+
+        document.write("<b>         # " + ("<u>ID</u>                  ") + "  &mdash;  <u>NAME</u></b><br/>");
+
+        for (_b in myBooks.books) {
+            document.write(" <button onclick='deleteBook(\""+myBooks.books[_b].id+"\");'>x</button> <button onclick='editBook(\""+myBooks.books[_b].id+"\");'>&uparrow;</button> # " + (myBooks.books[_b].id+"                    ").substring(0,20) + "  &mdash;  " + myBooks.books[_b].name.replace('<','&lt;') + "<br/>");
+        }
+
+    </script></pre>
+</body>
+</html>
